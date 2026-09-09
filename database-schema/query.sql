@@ -40,9 +40,6 @@ CREATE TABLE user_measurements (
     height_cm DECIMAL(5, 2),
     chest_circumference DECIMAL(5, 2) NOT NULL,
     waist_circumference DECIMAL(5, 2) NOT NULL,
-    hip_circumference DECIMAL(5, 2),
-    shoulder_width DECIMAL(5, 2),
-    arm_length DECIMAL(5, 2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_measurements_user FOREIGN KEY (user_id) 
         REFERENCES users(id) ON DELETE CASCADE
@@ -105,7 +102,6 @@ CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
     amount DECIMAL(10, 2) NOT NULL,
-    proof_image_url VARCHAR(255),
     status ENUM('pending', 'verified', 'rejected') NOT NULL DEFAULT 'pending',
     verified_by INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
