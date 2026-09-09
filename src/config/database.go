@@ -3,29 +3,23 @@ package config
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func InitDatabase() *sql.DB {
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
+func Connect() (*sql.DB, error) {
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, password, host, port, dbName)
-
-	db, err := sql.Open("mysql", dsn)
+	dbString := os.Getenv("DB_URL")
+	dbURL, err := sql.Open("mysql", dbString)
 	if err != nil {
-		log.Fatalf("Gagal membuka koneksi database: %v", err)
+		return nil, fmt.Errorf("Gagal membuka koneksi database: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
-		log.Fatalf("Gagal ping database: %v", err)
+	if err := dbURL.Ping(); err != nil {
+		return nil, fmt.Errorf("Gagal ping database: %w", err)
 	}
 
-	return db
+	fmt.Println("Successfully connected to database :D")
+	return dbURL, nil
 }
