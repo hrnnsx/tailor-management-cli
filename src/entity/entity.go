@@ -12,6 +12,21 @@ type User struct {
 	CreatedAt time.Time
 }
 
+type PaymentStatusType string
+
+const (
+	Paid   PaymentStatusType = "paid"
+	unpaid PaymentStatusType = "unpaid"
+)
+
+type OrderStatusType string
+
+const (
+	Pending  OrderStatusType = "pending"
+	Verified OrderStatusType = "verified"
+	Rejected OrderStatusType = "rejected"
+)
+
 type UserMeasurement struct {
 	ID                 int
 	UserID             int
@@ -44,4 +59,13 @@ type OrderSummary struct {
 	RequiredCM  int
 	PricePerCM  float64
 	TotalPrice  float64
+}
+type CustomerOrder struct {
+	ID             int
+	OrderCode      string
+	DeterminedSize string
+	TotalPrice     float64
+	PaymentStatus  PaymentStatusType
+	Status         OrderStatusType
+	CreatedAt      time.Time
 }

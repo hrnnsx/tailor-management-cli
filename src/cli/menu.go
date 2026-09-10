@@ -41,9 +41,11 @@ func MainMenu(db *sql.DB) {
 				fmt.Println(err)
 				continue
 			}
-			if user != nil {
-				// Arahkan ke menu customer jika role customer
+			switch user.Role {
+			case "customer":
 				CustomerMenu(orderH, *user)
+			case "admin":
+			case "worker":
 			}
 		case 1:
 			auth.SignUpCLI(authH)
@@ -74,7 +76,7 @@ func CustomerMenu(orderH *handler.OrderHandler, user entity.User) {
 		case 0:
 			BikinBajuCLI(orderH, user)
 		case 1:
-			fmt.Println("\n(Fitur cek status order dalam pengerjaan)")
+			CheckAllOrder(orderH, user.ID)
 		case 2:
 			fmt.Println("\n(Fitur cek status pembayaran dalam pengerjaan)")
 		case 3:

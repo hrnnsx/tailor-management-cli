@@ -218,3 +218,27 @@ func inputNewMeasurementCLI(orderHandler *handler.OrderHandler, userID int) *ent
 	}
 	return m
 }
+
+func CheckAllOrder(orderHandler *handler.OrderHandler, userID int) {
+	orders, err := orderHandler.CheckOrderStatus(userID)
+	if err != nil {
+		fmt.Printf("ERROR: %v", err)
+		return
+	}
+
+	fmt.Println("\n----------------------------------------------------------------------------------------------------------")
+	fmt.Printf("%-4s %-25s %-8s %-12s %-12s %-18s %-17s\n", "NO", "ORDER CODE", "SIZE", "PRICE", "STATUS", "PAYMENT STATUS", "ORDER DATE")
+	fmt.Println("----------------------------------------------------------------------------------------------------------")
+	for _, order := range orders {
+		fmt.Printf(
+			"%-4d. %-25s %-8s %-12.2f %-12s %-15s %-17s\n",
+			order.ID,
+			order.OrderCode,
+			order.DeterminedSize,
+			order.TotalPrice,
+			order.Status,
+			order.PaymentStatus,
+			order.CreatedAt.Format("02-01-2006 15:04"),
+		)
+	}
+}

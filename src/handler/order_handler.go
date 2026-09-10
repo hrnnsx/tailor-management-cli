@@ -221,3 +221,50 @@ func (h *OrderHandler) SubmitOrder(customerID, measurementID, fabricPatternID in
 
 	return tx.Commit()
 }
+
+func (h *OrderHandler) CheckOrderStatus(customerID int) ([]entity.CustomerOrder, error) {
+
+	var orders []entity.CustomerOrder
+
+	query := `
+		SELECT
+			id,
+			order_code,
+			determined_size,
+			total_price,
+			payment_status,
+			status,
+			created_at
+		FROM orders
+		WHERE customer_id = ?
+		ORDER BY created_at DESC;
+	`
+	rows, err := h.db.Query(query, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order entity.CustomerOrder
+
+		err := rows.Scan(
+			&order.ID,
+			&order.OrderCode,
+			&order.DeterminedSize,
+			&order.TotalPrice,
+			&order.PaymentStatus,
+			&order.Status,
+			&order.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		orders = append(orders, order)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
