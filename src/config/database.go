@@ -3,23 +3,37 @@ package config
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 
-func Connect() (*sql.DB, error) {
+func ConnectDB() *sql.DB {
 
-	dbString := os.Getenv("DB_URL")
-	dbURL, err := sql.Open("mysql", dbString)
+	err := godotenv.Load()
 	if err != nil {
-		return nil, fmt.Errorf("Gagal membuka koneksi database: %w", err)
+		log.Println("Peringatan: Berkas .env tidak ditemukan, menggunakan environment sistem.")
 	}
 
-	if err := dbURL.Ping(); err != nil {
-		return nil, fmt.Errorf("Gagal ping database: %w", err)
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, password, host, port, dbName)
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatalf("Gagal membuka koneksi database: %v", err)
 	}
 
-	fmt.Println("Successfully connected to database :D")
-	return dbURL, nil
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Gagal terhubung ke database: %v", err)
+	}
+
+	fmt.Println("Koneksi database berhasil.")
+	return db
 }

@@ -23,9 +23,9 @@ type UserMeasurement struct {
 }
 
 type Fabric struct {
-	ID            int
-	Name          string
-	PricePerMeter float64
+	ID         int
+	Name       string
+	PricePerCM float64
 }
 
 type FabricPatternOption struct {
@@ -34,11 +34,14 @@ type FabricPatternOption struct {
 	PatternID       int
 	PatternName     string
 	StockCM         int
-	PricePerMeter   float64
+	PricePerCM      float64
 }
 
-type SizeRequirement struct {
-	ID         int
-	Size       string
-	RequiredCM int
+type OrderSummary struct {
+	FabricName  string
+	PatternName string
+	Size        string
+	RequiredCM  int
+	PricePerCM  float64
+	TotalPrice  float64
 }
