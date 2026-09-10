@@ -219,26 +219,131 @@ func inputNewMeasurementCLI(orderHandler *handler.OrderHandler, userID int) *ent
 	return m
 }
 
-func CheckAllOrder(orderHandler *handler.OrderHandler, userID int) {
-	orders, err := orderHandler.CheckOrderStatus(userID)
+func CheckAllOrderStatus(orderHandler *handler.OrderHandler, userID int) {
+	orders, err := orderHandler.CheckOrder(userID)
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
 		return
 	}
 
-	fmt.Println("\n----------------------------------------------------------------------------------------------------------")
-	fmt.Printf("%-4s %-25s %-8s %-12s %-12s %-18s %-17s\n", "NO", "ORDER CODE", "SIZE", "PRICE", "STATUS", "PAYMENT STATUS", "ORDER DATE")
-	fmt.Println("----------------------------------------------------------------------------------------------------------")
+	fmt.Println("\n-----------------------------------------------------------------------------")
+	fmt.Printf("%-4s %-28s %-10s %-12s %-17s\n", "NO", "ORDER CODE", "SIZE", "STATUS", "ORDER DATE")
+	fmt.Println("-----------------------------------------------------------------------------")
 	for _, order := range orders {
 		fmt.Printf(
-			"%-4d. %-25s %-8s %-12.2f %-12s %-15s %-17s\n",
+			"%-4d %-28s %-10s %-12s %-17s\n",
 			order.ID,
 			order.OrderCode,
 			order.DeterminedSize,
-			order.TotalPrice,
 			order.Status,
-			order.PaymentStatus,
 			order.CreatedAt.Format("02-01-2006 15:04"),
 		)
 	}
+}
+
+func PayOrderCLI(orderHandler *handler.OrderHandler, orders []entity.CustomerOrder) {
+	items := make([]string, len(orders))
+
+	for i, order := range orders {
+		items[i] = fmt.Sprintf(
+			"%s - Rp%.2f",
+			order.OrderCode,
+			order.TotalPrice,
+		)
+	}
+
+	prompt := promptui.Select{
+		Label: "Pilih order yang ingin dibayar",
+		Items: items,
+	}
+
+	index, _, err := prompt.Run()
+	if err != nil {
+		return
+	}
+
+	selectedOrder := orders[index]
+
+	fmt.Println("\n-----------------------------------")
+	fmt.Printf("Order Code : %s\n", selectedOrder.OrderCode)
+	fmt.Printf("Total      : Rp%.2f\n", selectedOrder.TotalPrice)
+	fmt.Printf("Status     : %s\n", selectedOrder.PaymentStatus)
+	fmt.Println("-----------------------------------")
+
+	confirmPrompt := promptui.Select{
+		Label: "Bayar order ini?",
+		Items: []string{
+			"Ya, bayar",
+			"Kembali",
+		},
+	}
+
+	confirmIndex, _, err := confirmPrompt.Run()
+	if err != nil {
+		return
+	}
+
+	switch confirmIndex {
+	case 0:
+		err := orderHandler.CreatePayment(
+			selectedOrder.ID,
+			selectedOrder.TotalPrice,
+		)
+
+		if err != nil {
+			fmt.Printf("ERROR: %v\n", err)
+			return
+		}
+
+		fmt.Println("\nPembayaran berhasil dibuat.")
+		fmt.Println("Status pembayaran: pending")
+		fmt.Println("Silakan tunggu verifikasi admin.")
+
+	case 1:
+		return
+	}
+}
+
+func CheckBill(orderHandler *handler.OrderHandler, userID int) {
+	orders, err := orderHandler.CheckOrder(userID)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+		return
+	}
+
+	fmt.Println("\n-----------------------------------------------------------")
+	fmt.Printf(
+		"%-28s %-15s %-17s\n",
+		"ORDER CODE",
+		"PRICE",
+		"PAYMENT STATUS",
+	)
+	fmt.Println("-----------------------------------------------------------")
+
+	var unpaidOrders []entity.CustomerOrder
+	var totalPrice float64
+
+	for _, order := range orders {
+		fmt.Printf(
+			"%-28s %-15.2f %-17s\n",
+			order.OrderCode,
+			order.TotalPrice,
+			order.PaymentStatus,
+		)
+
+		if order.PaymentStatus == "unpaid" {
+			unpaidOrders = append(unpaidOrders, order)
+			totalPrice += order.TotalPrice
+		}
+	}
+
+	fmt.Println("-----------------------------------------------------------")
+	fmt.Printf("Total Unpaid: %.2f\n", totalPrice)
+
+	if len(unpaidOrders) == 0 {
+		fmt.Println("Tidak ada tagihan yang harus dibayar.")
+		return
+	}
+
+	PayOrderCLI(orderHandler, unpaidOrders)
 }

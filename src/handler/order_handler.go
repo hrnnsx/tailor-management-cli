@@ -222,7 +222,7 @@ func (h *OrderHandler) SubmitOrder(customerID, measurementID, fabricPatternID in
 	return tx.Commit()
 }
 
-func (h *OrderHandler) CheckOrderStatus(customerID int) ([]entity.CustomerOrder, error) {
+func (h *OrderHandler) CheckOrder(customerID int) ([]entity.CustomerOrder, error) {
 
 	var orders []entity.CustomerOrder
 

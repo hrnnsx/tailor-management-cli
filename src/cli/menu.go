@@ -63,7 +63,7 @@ func CustomerMenu(orderH *handler.OrderHandler, user entity.User) {
 			Items: []string{
 				"Bikin baju",
 				"Cek status order yang sedang berjalan",
-				"Cek status pembayaran",
+				"Cek Tagihan",
 				"Log out",
 			},
 		}
@@ -76,9 +76,9 @@ func CustomerMenu(orderH *handler.OrderHandler, user entity.User) {
 		case 0:
 			BikinBajuCLI(orderH, user)
 		case 1:
-			CheckAllOrder(orderH, user.ID)
+			CheckAllOrderStatus(orderH, user.ID)
 		case 2:
-			fmt.Println("\n(Fitur cek status pembayaran dalam pengerjaan)")
+			CheckBill(orderH, user.ID)
 		case 3:
 			fmt.Println("\nBerhasil logout.")
 			return
