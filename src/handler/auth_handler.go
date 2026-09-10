@@ -29,7 +29,7 @@ func (h *AuthHandler) Register(name, email, password, phone string) error {
 	return nil
 }
 
-func (h *AuthHandler) Login(email, password string) (*entity.User, error) {
+func (h *AuthHandler) SignIn(email, password string) (*entity.User, error) {
 	email = strings.TrimSpace(email)
 	var user entity.User
 

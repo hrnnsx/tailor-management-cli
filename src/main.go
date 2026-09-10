@@ -2,7 +2,6 @@ package main
 
 import (
 	"tailor-management-cli/cli"
-	"tailor-management-cli/cli/auth"
 	"tailor-management-cli/config"
 )
 

@@ -1,18 +1,21 @@
 package auth
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"regexp"
+	"tailor-management-cli/config/colors"
 	"tailor-management-cli/entity"
+	"tailor-management-cli/handler"
 
 	"github.com/hrnnsx/go-toolkit/stdio"
 	"github.com/manifoldco/promptui"
 )
 
-func SignIn(db *sql.DB) (entity.User, error) {
-	fmt.Println("MASUK SIGN IN")
+func SignIn(authhandler *handler.AuthHandler) (*entity.User, error) {
+	stdio.ClearScreen()
+	fmt.Println("                                          ")
+	fmt.Println("                  SIGN IN                 ")
+	fmt.Println("                                          ")
 
 	// ** Email PROMPT
 	emailPrompt := promptui.Prompt{
@@ -21,20 +24,23 @@ func SignIn(db *sql.DB) (entity.User, error) {
 	}
 
 	var email string
-	var emailErr error
-
 	for {
+		var emailErr error
 		email, emailErr = emailPrompt.Run()
+
 		if emailErr != nil {
-			return entity.User{}, fmt.Errorf("Error email input: %v", emailErr)
+			return nil, emailErr
 		}
 		if IsValidEmail(email) {
 			break
-		} else {
-			fmt.Println("Invalid Email input...")
 		}
-	}
 
+		fmt.Printf(
+			"%s[WARNING] Invalid Email (ex: johndoe@mail.com)%s\n",
+			colors.Red,
+			colors.Reset,
+		)
+	}
 	fmt.Printf("Email: %s\n", email)
 
 	// ** Password PROMPT
@@ -43,41 +49,37 @@ func SignIn(db *sql.DB) (entity.User, error) {
 		Mask:        '*',
 		HideEntered: true,
 	}
-	password, passwordErr := passwordPrompt.Run()
 
-	if passwordErr != nil {
-		return entity.User{}, fmt.Errorf("Error input password: %v", passwordErr)
+	var password string
+	for {
+		var passwordErr error
+		password, passwordErr = passwordPrompt.Run()
+
+		if passwordErr != nil {
+			return nil, passwordErr
+		}
+		if IsValidPassword(password) {
+			break
+		}
+
+		fmt.Printf("%s[WARNING] Password minimal 6 karakter%s\n", colors.Red, colors.Reset)
+	}
+
+	user, err := authhandler.SignIn(email, password)
+	if err != nil {
+		return nil, fmt.Errorf("%s[FAILED]:%s %w", colors.Red, colors.Reset, err)
 	}
 
 	// Clear terminal
 	stdio.ClearScreen()
-	fmt.Printf("\nSIGNING IN...\n\n")
-
-	// Backend PROC
-	// TODO: Hashing password
-
-	var user entity.User
-
-	query := `SELECT id, name, email, password, role, phone, created_at FROM users WHERE email = ?`
-	dbErr := db.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role, &user.Phone, &user.CreatedAt)
-
-	if dbErr == sql.ErrNoRows {
-		return entity.User{}, errors.New("Invalid Email or Password")
-	}
-	if dbErr != nil {
-		return entity.User{}, fmt.Errorf("Database error: %w", dbErr)
-	}
-
-	// TODO: Hashed password matching
-	if password == user.Password {
-		fmt.Println("Cuayo Sign In")
-		return user, nil
-	}
-
-	return entity.User{}, errors.New("Invalid Email or Password")
+	return user, nil
 }
 
 func IsValidEmail(email string) bool {
 	var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
+}
+
+func IsValidPassword(password string) bool {
+	return len(password) >= 6
 }

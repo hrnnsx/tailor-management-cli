@@ -19,9 +19,14 @@ func MainMenu(db *sql.DB) {
 		prompt := promptui.Select{
 			Label: "Pilih Menu Utama",
 			Items: []string{
-				"Login",
-				"Signup",
+				"Sign In",
+				"Sign Up",
 				"Exit",
+			},
+			Templates: &promptui.SelectTemplates{
+				Active:   "▸ {{ . | cyan }}",
+				Inactive: "  {{ . }}",
+				Selected: "✔ {{ . | green }}",
 			},
 		}
 		idx, _, err := prompt.Run()
@@ -31,7 +36,11 @@ func MainMenu(db *sql.DB) {
 
 		switch idx {
 		case 0:
-			user := auth.LoginCLI(authH)
+			user, err := auth.SignIn(authH)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
 			if user != nil {
 				// Arahkan ke menu customer jika role customer
 				CustomerMenu(orderH, *user)
