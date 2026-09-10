@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"log"
 	"tailor-management-cli/cli"
+	"tailor-management-cli/cli/auth"
 	"tailor-management-cli/config"
 
 	// "tailor-management-cli/entity"
 
+	"github.com/hrnnsx/go-toolkit/stdio"
 	"github.com/joho/godotenv"
 	"github.com/manifoldco/promptui"
 )
@@ -35,7 +37,15 @@ func main() {
 
 	switch index {
 	case 0:
-		// signIn()
+		user, err := auth.SignIn(db)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		stdio.ClearScreen()
+
+		fmt.Printf("Hello, %s", user.Name)
+		return
 	case 1:
 		// signUp()
 	case 2:
