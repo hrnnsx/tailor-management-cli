@@ -29,10 +29,7 @@ func adminReturn() {
 	stdio.ClearScreen()
 }
 
-// ============================================================
-// CHECK ALL ORDER
-// ============================================================
-
+// check all orderd
 func CheckAllOrder(orderH *handler.OrderHandler) {
 	stdio.ClearScreen()
 
@@ -213,10 +210,7 @@ func CheckAllOrder(orderH *handler.OrderHandler) {
 	adminReturn()
 }
 
-// ============================================================
-// CHECK PAYMENT
-// ============================================================
-
+// check Payemnt
 func CheckPayment(paymentH *handler.PaymentHandler, user entity.User) {
 	stdio.ClearScreen()
 
@@ -325,10 +319,7 @@ func CheckPayment(paymentH *handler.PaymentHandler, user entity.User) {
 	adminReturn()
 }
 
-// ============================================================
-// CHECK REPORT
-// ============================================================
-
+// laporan penjualan
 func CheckReport(orderH *handler.OrderHandler) {
 	stdio.ClearScreen()
 
@@ -358,10 +349,7 @@ func CheckReport(orderH *handler.OrderHandler) {
 	adminReturn()
 }
 
-// ============================================================
-// CREATE FABRIC
-// ============================================================
-
+// buat tambah kain
 func CreateFabricCLI(fabricH *handler.FabricHandler) {
 	stdio.ClearScreen()
 
@@ -471,10 +459,7 @@ func CreateFabricCLI(fabricH *handler.FabricHandler) {
 	adminReturn()
 }
 
-// ============================================================
-// RESTOCK FABRIC
-// ============================================================
-
+// buat restock kain
 func RestockFabricCLI(fabricH *handler.FabricHandler) {
 	stdio.ClearScreen()
 
@@ -673,10 +658,7 @@ func RestockFabricCLI(fabricH *handler.FabricHandler) {
 	adminReturn()
 }
 
-// ============================================================
-// CREATE FABRIC PATTERN
-// ============================================================
-
+// buat bikin kombinasi kain ama pattern
 func CreateFabricPatternCLI(fabricH *handler.FabricHandler) {
 	stdio.ClearScreen()
 
