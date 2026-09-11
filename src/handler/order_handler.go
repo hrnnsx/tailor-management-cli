@@ -236,6 +236,7 @@ func (h *OrderHandler) CheckOrder(customerID int) ([]entity.CustomerOrder, error
 			total_price,
 			payment_status,
 			status,
+			progress,
 			created_at
 		FROM orders
 		WHERE customer_id = ?
@@ -257,6 +258,7 @@ func (h *OrderHandler) CheckOrder(customerID int) ([]entity.CustomerOrder, error
 			&order.TotalPrice,
 			&order.PaymentStatus,
 			&order.Status,
+			&order.Progress,
 			&order.CreatedAt,
 		)
 		if err != nil {

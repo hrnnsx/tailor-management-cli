@@ -465,7 +465,7 @@ func CheckAllOrderStatus(
 		"---------------------------------------------------------------------",
 	)
 	fmt.Printf(
-		"%-18s %-8s %-20s %-22s\n",
+		"%-25s %-8s %-10s %-10s\n",
 		"ORDER CODE",
 		"SIZE",
 		"STATUS",
@@ -477,7 +477,7 @@ func CheckAllOrderStatus(
 
 	for _, order := range orders {
 		fmt.Printf(
-			"%-18s %-8s %-20s %-22s\n",
+			"%-25s %-8s %-10s %-10s\n",
 			order.OrderCode,
 			order.DeterminedSize,
 			order.Status,
