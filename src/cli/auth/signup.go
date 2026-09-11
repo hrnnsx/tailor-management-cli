@@ -1,124 +1,201 @@
 package auth
 
 import (
-	"errors"
+	"bufio"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
+	"tailor-management-cli/config/colors"
 	"tailor-management-cli/handler"
 
+	"github.com/hrnnsx/go-toolkit/stdio"
 	"github.com/manifoldco/promptui"
 )
 
 func SignUpCLI(authHandler *handler.AuthHandler) {
-	fmt.Println("\n==============================")
-	fmt.Println("    FORM REGISTRASI AKUN      ")
-	fmt.Println("==============================")
+	stdio.ClearScreen()
 
-	// Template tanpa mengulang kembali inputan teks user ke terminal
-	inputTemplate := &promptui.PromptTemplates{
-		Prompt:  "{{ . }} ",
-		Valid:   "{{ . }} ",
-		Invalid: "{{ . }} ",
-		Success: " ",
-	}
+	fmt.Println("                                          ")
+	fmt.Println(">>>               SIGN UP             <<<")
+	fmt.Println("                                          ")
 
-	// 1. Nama Lengkap
-	fmt.Println("\nMasukkan Nama Lengkap:")
+	// ** Name PROMPT
 	namePrompt := promptui.Prompt{
-		Label:     ">",
-		Templates: inputTemplate,
-		Validate: func(input string) error {
-			if strings.TrimSpace(input) == "" {
-				return errors.New("nama tidak boleh kosong")
-			}
-			return nil
-		},
-	}
-	name, err := namePrompt.Run()
-	if err != nil {
-		return
+		Label:       "Name",
+		HideEntered: true,
 	}
 
-	// 2. Email
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-	fmt.Println("\nMasukkan Email (contoh: user@mail.com):")
+	var name string
+	for {
+		var err error
+		name, err = namePrompt.Run()
+
+		if err != nil {
+			return
+		}
+
+		name = strings.TrimSpace(name)
+
+		if name != "" {
+			break
+		}
+
+		fmt.Printf(
+			"%s[WARNING] Nama tidak boleh kosong%s\n",
+			colors.Red,
+			colors.Reset,
+		)
+	}
+	fmt.Printf("Name: %s\n", name)
+
+	// ** Email PROMPT
+	emailRegex := regexp.MustCompile(
+		`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`,
+	)
+
 	emailPrompt := promptui.Prompt{
-		Label:     ">",
-		Templates: inputTemplate,
-		Validate: func(input string) error {
-			if !emailRegex.MatchString(strings.TrimSpace(input)) {
-				return errors.New("format email tidak valid (contoh: x@y.z)")
-			}
-			return nil
-		},
-	}
-	email, err := emailPrompt.Run()
-	if err != nil {
-		return
+		Label:       "Email",
+		HideEntered: true,
 	}
 
-	// 3. Password
-	fmt.Println("\nMasukkan Password (minimal 6 karakter):")
-	passPrompt := promptui.Prompt{
-		Label:     ">",
-		Mask:      '*',
-		Templates: inputTemplate,
-		Validate: func(input string) error {
-			if len(input) < 6 {
-				return errors.New("password minimal 6 karakter")
-			}
-			return nil
-		},
+	var email string
+	for {
+		var err error
+		email, err = emailPrompt.Run()
+
+		if err != nil {
+			return
+		}
+
+		email = strings.TrimSpace(email)
+
+		if emailRegex.MatchString(email) {
+			break
+		}
+
+		fmt.Printf(
+			"%s[WARNING] Invalid Email (ex: johndoe@mail.com)%s\n",
+			colors.Red,
+			colors.Reset,
+		)
 	}
-	password, err := passPrompt.Run()
-	if err != nil {
-		return
+	fmt.Printf("Email: %s\n", email)
+
+	// ** Password PROMPT
+	passwordPrompt := promptui.Prompt{
+		Label:       "Password",
+		Mask:        '*',
+		HideEntered: true,
 	}
 
-	// 4. Konfirmasi Password
-	fmt.Println("\nKonfirmasi Ulang Password:")
-	confirmPassPrompt := promptui.Prompt{
-		Label:     ">",
-		Mask:      '*',
-		Templates: inputTemplate,
-		Validate: func(input string) error {
-			if input != password {
-				return errors.New("konfirmasi password tidak cocok")
-			}
-			return nil
-		},
+	var password string
+	for {
+		var err error
+		password, err = passwordPrompt.Run()
+
+		if err != nil {
+			return
+		}
+
+		if len(password) >= 6 {
+			break
+		}
+
+		fmt.Printf(
+			"%s[WARNING] Password minimal 6 karakter%s\n",
+			colors.Red,
+			colors.Reset,
+		)
 	}
-	_, err = confirmPassPrompt.Run()
-	if err != nil {
-		return
+	fmt.Print("Password: ********\n")
+
+	// ** Confirm Password PROMPT
+	confirmPasswordPrompt := promptui.Prompt{
+		Label:       "Confirm Password",
+		Mask:        '*',
+		HideEntered: true,
 	}
 
-	// 5. Nomor Handphone
-	fmt.Println("\nMasukkan Nomor HP (contoh: 08xxxxxxxxxx):")
+	var confirmPassword string
+	for {
+		var err error
+		confirmPassword, err = confirmPasswordPrompt.Run()
+
+		if err != nil {
+			return
+		}
+
+		if confirmPassword == password {
+			break
+		}
+
+		fmt.Printf(
+			"%s[WARNING] Konfirmasi password tidak cocok%s\n",
+			colors.Red,
+			colors.Reset,
+		)
+	}
+	fmt.Print("Confirm Password: ********\n")
+
+	// ** Phone PROMPT
 	phonePrompt := promptui.Prompt{
-		Label:     ">",
-		Templates: inputTemplate,
-		Validate: func(input string) error {
-			input = strings.TrimSpace(input)
-			if !strings.HasPrefix(input, "08") || len(input) < 10 {
-				return errors.New("nomor HP wajib diawali '08' dan minimal 10 digit")
-			}
-			return nil
-		},
+		Label:       "Phone",
+		HideEntered: true,
 	}
-	phone, err := phonePrompt.Run()
+
+	var phone string
+	for {
+		var err error
+		phone, err = phonePrompt.Run()
+
+		if err != nil {
+			return
+		}
+
+		phone = strings.TrimSpace(phone)
+
+		if strings.HasPrefix(phone, "08") && len(phone) >= 10 {
+			break
+		}
+
+		fmt.Printf(
+			"%s[WARNING] Nomor HP wajib diawali '08' dan minimal 10 digit%s\n",
+			colors.Red,
+			colors.Reset,
+		)
+	}
+	fmt.Printf("Phone: %s\n", phone)
+
+	// ** Register
+	err := authHandler.Register(name, email, password, phone)
 	if err != nil {
+		fmt.Printf(
+			"%s[FAILED]:%s %v\n",
+			colors.Red,
+			colors.Reset,
+			err,
+		)
+
+		fmt.Print("\nTekan Enter untuk kembali...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+
+		stdio.ClearScreen()
 		return
 	}
 
-	// Eksekusi logic query ke Handler
-	err = authHandler.Register(name, email, password, phone)
-	if err != nil {
-		fmt.Printf("\n[Error]: %v\n", err)
-		return
-	}
+	fmt.Printf(
+		"%s[SUCCESS]:%s Registrasi akun berhasil!\n",
+		colors.Green,
+		colors.Reset,
+	)
+	fmt.Println("Silakan login untuk masuk ke sistem.")
+	fmt.Println()
 
-	fmt.Println("\nRegistrasi akun berhasil! Silakan login untuk masuk ke sistem.")
+	fmt.Print("Tekan Enter untuk melanjutkan...")
+	bufio.NewReader(os.Stdin).ReadString('\n')
+
+	// Clear terminal setelah user menekan Enter
+	stdio.ClearScreen()
 }

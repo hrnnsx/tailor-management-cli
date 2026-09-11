@@ -192,7 +192,8 @@ func (h *OrderHandler) SubmitOrder(customerID, measurementID, fabricPatternID in
 	orderCode := fmt.Sprintf("ORD-%d", time.Now().UnixNano())
 	orderQuery := `
 		INSERT INTO orders (
-			order_code, customer_id,
+			order_code,
+			customer_id,
 			user_measurement_id,
 			fabric_pattern_id,
 			determined_size,
@@ -200,9 +201,10 @@ func (h *OrderHandler) SubmitOrder(customerID, measurementID, fabricPatternID in
 			price_per_cm_snapshot,
 			total_price,
 			payment_status,
-			status
+			status,
+			progress
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 'pending')
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 'pending', 'Order diterima')
 	`
 	_, err = tx.Exec(
 		orderQuery,
@@ -267,4 +269,302 @@ func (h *OrderHandler) CheckOrder(customerID int) ([]entity.CustomerOrder, error
 		return nil, err
 	}
 	return orders, nil
+}
+
+func (h *OrderHandler) CheckAllOrder() ([]entity.AdminOrder, error) {
+	var orders []entity.AdminOrder
+
+	query := `
+		SELECT
+			o.id,
+			o.order_code,
+			u.name,
+			o.determined_size,
+			o.cm_used,
+			o.assigned_worker_id,
+			o.status,
+			o.created_at
+		FROM orders o
+		JOIN users u ON o.customer_id = u.id
+		WHERE o.status = 'pending'
+		ORDER BY o.created_at ASC;
+	`
+
+	rows, err := h.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order entity.AdminOrder
+
+		err := rows.Scan(
+			&order.ID,
+			&order.OrderCode,
+			&order.CustomerName,
+			&order.DeterminedSize,
+			&order.CMUsed,
+			&order.AssignedWorkerID,
+			&order.Status,
+			&order.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return orders, nil
+}
+
+func (h *OrderHandler) GetAvailableWorkers() ([]entity.AvailableWorker, error) {
+	var workers []entity.AvailableWorker
+
+	query := `
+		SELECT
+			u.id,
+			u.name
+		FROM users u
+		JOIN workers w ON u.id = w.user_id
+		WHERE u.role = 'worker'
+		  AND w.availability = TRUE
+		ORDER BY u.name ASC;
+	`
+
+	rows, err := h.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var worker entity.AvailableWorker
+
+		err := rows.Scan(
+			&worker.ID,
+			&worker.Name,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		workers = append(workers, worker)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return workers, nil
+}
+
+func (h *OrderHandler) AssignOrder(orderID int, workerID int) error {
+	tx, err := h.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Cek worker
+	var availability bool
+
+	err = tx.QueryRow(`
+		SELECT availability
+		FROM workers
+		WHERE user_id = ?
+		FOR UPDATE
+	`, workerID).Scan(&availability)
+
+	if err == sql.ErrNoRows {
+		return errors.New("worker tidak ditemukan")
+	}
+
+	if err != nil {
+		return fmt.Errorf(
+			"gagal mengecek worker: %w",
+			err,
+		)
+	}
+
+	if !availability {
+		return errors.New("worker sedang tidak tersedia")
+	}
+
+	// Cek order
+	var status string
+	var assignedWorkerID *int
+
+	err = tx.QueryRow(`
+		SELECT
+			status,
+			assigned_worker_id
+		FROM orders
+		WHERE id = ?
+		FOR UPDATE
+	`, orderID).Scan(
+		&status,
+		&assignedWorkerID,
+	)
+
+	if err == sql.ErrNoRows {
+		return errors.New("order tidak ditemukan")
+	}
+
+	if err != nil {
+		return fmt.Errorf(
+			"gagal mengecek order: %w",
+			err,
+		)
+	}
+
+	if status != "pending" {
+		return fmt.Errorf(
+			"order tidak bisa di-assign karena statusnya %s",
+			status,
+		)
+	}
+
+	if assignedWorkerID != nil {
+		return errors.New("order sudah memiliki worker")
+	}
+
+	// Assign worker + ubah status menjadi in progress
+	result, err := tx.Exec(`
+		UPDATE orders
+		SET
+			assigned_worker_id = ?,
+			status = 'in progress'
+		WHERE id = ?
+		  AND status = 'pending'
+		  AND assigned_worker_id IS NULL
+	`, workerID, orderID)
+
+	if err != nil {
+		return fmt.Errorf(
+			"gagal assign worker: %w",
+			err,
+		)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf(
+			"gagal mengecek hasil assignment: %w",
+			err,
+		)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New(
+			"order gagal di-assign karena sudah berubah",
+		)
+	}
+
+	// Worker menjadi tidak tersedia
+	result, err = tx.Exec(`
+		UPDATE workers
+		SET availability = FALSE
+		WHERE user_id = ?
+		  AND availability = TRUE
+	`, workerID)
+
+	if err != nil {
+		return fmt.Errorf(
+			"gagal update availability worker: %w",
+			err,
+		)
+	}
+
+	rowsAffected, err = result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf(
+			"gagal mengecek availability worker: %w",
+			err,
+		)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New(
+			"worker sudah tidak tersedia",
+		)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf(
+			"gagal menyimpan assignment: %w",
+			err,
+		)
+	}
+
+	return nil
+}
+
+func (h *OrderHandler) GetSalesReport() (*entity.SalesReport, error) {
+	var report entity.SalesReport
+
+	query := `
+		SELECT
+			COUNT(*),
+			COALESCE(
+				SUM(
+					CASE
+						WHEN payment_status = 'paid'
+						THEN total_price
+						ELSE 0
+					END
+				),
+				0
+			),
+			COALESCE(
+				SUM(
+					CASE
+						WHEN payment_status = 'paid'
+						THEN 1
+						ELSE 0
+					END
+				),
+				0
+			),
+			COALESCE(
+				SUM(
+					CASE
+						WHEN payment_status = 'unpaid'
+						THEN 1
+						ELSE 0
+					END
+				),
+				0
+			),
+			COALESCE(
+				SUM(
+					CASE
+						WHEN status = 'finished'
+						THEN 1
+						ELSE 0
+					END
+				),
+				0
+			)
+		FROM orders
+	`
+
+	err := h.db.QueryRow(query).Scan(
+		&report.TotalOrders,
+		&report.TotalRevenue,
+		&report.PaidOrders,
+		&report.UnpaidOrders,
+		&report.FinishedOrders,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &report, nil
 }
