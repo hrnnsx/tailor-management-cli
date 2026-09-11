@@ -1,157 +1,78 @@
 # Tailor Management CLI
 
-A comprehensive command-line application for managing a tailor shop's operations, including customer orders, fabric inventory, measurements, and worker assignments.
+Aplikasi Command Line Interface (CLI) berbasis Go untuk mengelola operasional bisnis penjahit. Sistem ini menangani pemesanan pelanggan, inventaris kain, profil ukuran badan, penugasan pekerja, serta verifikasi pembayaran.
 
-## Overview
+## Prasyarat
 
-This system manages the complete workflow of a tailor shop, from customer measurements and fabric selection to order tracking and payment verification.
+Sebelum menjalankan aplikasi, pastikan perangkat Anda telah terpasang:
+* Go (versi 1.20 atau yang lebih baru)
+* MySQL atau MariaDB
+* Terminal atau Command Prompt
 
-## Database Schema
+## Instalasi dan Cara Penggunaan
 
-### Tables
+1. Clone repositori dan masuk ke direktori proyek:
+   ```bash
+   git clone <url-repository>
+   cd tailor-management-cli
+   ```
 
-#### 1. **users**
-Core user accounts table supporting three roles: customer, admin, and worker.
-- `id` (INT, PK): Auto-incremented user ID
-- `name` (VARCHAR): User's full name
-- `email` (VARCHAR, UNIQUE): User email address
-- `password` (VARCHAR): Hashed password
-- `role` (ENUM): One of `customer`, `admin`, or `worker`
-- `phone` (VARCHAR): Contact number
-- `created_at` (TIMESTAMP): Account creation timestamp
+2. Unduh seluruh dependensi Go:
+   ```bash
+   go mod tidy
+   ```
 
-#### 2. **workers**
-Extension table for worker users (1:1 relationship with users).
-- `user_id` (INT, PK, FK): Foreign key to users
-- `availability` (BOOLEAN): Whether the worker is available for new assignments
+3. Buat file `.env` pada direktori utama proyek dengan isi sebagai berikut:
+   ```env
+   DB_USER=root
+   DB_PASSWORD=password_anda
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_NAME=tailor_db
+   ```
 
-#### 3. **user_measurements**
-Stores multiple measurement profiles for each customer.
-- `id` (INT, PK): Auto-incremented measurement ID
-- `user_id` (INT, FK): Reference to customer
-- `title` (VARCHAR): Name of the measurement profile
-- `height_cm` (DECIMAL): Height in centimeters
-- `chest_circumference` (DECIMAL): Chest circumference
-- `waist_circumference` (DECIMAL): Waist circumference
-- `hip_circumference` (DECIMAL): Hip circumference
-- `shoulder_width` (DECIMAL): Shoulder width
-- `arm_length` (DECIMAL): Arm length
-- `created_at` (TIMESTAMP): Creation timestamp
-
-#### 4. **fabrics**
-Inventory of available fabrics.
-- `id` (INT, PK): Auto-incremented fabric ID
-- `name` (VARCHAR): Fabric name/description
-- `price_per_meter` (DECIMAL): Price per meter in currency units
-
-#### 5. **patterns**
-Available clothing patterns/designs.
-- `id` (INT, PK): Auto-incremented pattern ID
-- `name` (VARCHAR): Pattern name/description
-
-#### 6. **fabric_patterns**
-Junction table for fabric and pattern combinations with stock tracking (stock measured in centimeters).
-- `id` (INT, PK): Auto-incremented ID
-- `fabric_id` (INT, FK): Reference to fabric
-- `pattern_id` (INT, FK): Reference to pattern
-- `stock_cm` (INT): Available stock in centimeters
-- **UNIQUE**: `(fabric_id, pattern_id)` - ensures each combination is unique
-
-#### 7. **size_requirements**
-Standard size chart defining fabric requirement per size.
-- `id` (INT, PK): Auto-incremented ID
-- `size` (ENUM): Standard size: `XS`, `S`, `M`, `L`, `XL`, `XXL`
-- `required_cm` (INT): Fabric requirement in centimeters for this size
-
-#### 8. **orders**
-Customer orders linking measurements, fabric selections, and assignments.
-- `id` (INT, PK): Auto-incremented order ID
-- `order_code` (VARCHAR, UNIQUE): Unique order identifier
-- `customer_id` (INT, FK): Reference to customer (users table)
-- `assigned_worker_id` (INT, FK): Reference to assigned worker (workers table, nullable)
-- `user_measurement_id` (INT, FK): Reference to customer's measurement profile
-- `fabric_pattern_id` (INT, FK): Reference to selected fabric-pattern combination
-- `determined_size` (ENUM): Final size determined for the order (`XS`-`XXL`)
-- `cm_used` (INT): Actual fabric used in centimeters
-- `price_per_meter_snapshot` (DECIMAL): Price snapshot at order time
-- `total_price` (DECIMAL): Total order price
-- `payment_status` (ENUM): `unpaid` or `paid`
-- `status` (ENUM): Order status: `pending`, `in progress`, or `finished`
-- `created_at` (TIMESTAMP): Order creation timestamp
-
-#### 9. **payments**
-Payment records for orders.
-- `id` (INT, PK): Auto-incremented payment ID
-- `order_id` (INT, FK): Reference to order
-- `amount` (DECIMAL): Payment amount
-- `proof_image_url` (VARCHAR): URL to payment proof image
-- `status` (ENUM): Payment status: `pending`, `verified`, or `rejected`
-- `verified_by` (INT, FK): Reference to verifying admin (users table, nullable)
-- `created_at` (TIMESTAMP): Payment timestamp
-
-### Triggers
-
-#### `trg_after_user_insert`
-**Purpose**: Auto-sync worker role to workers table
-- **Event**: After INSERT on users table
-- **Logic**: If new user has role = 'worker', automatically create a workers record with availability = TRUE
-
-#### `trg_after_user_update`
-**Purpose**: Keep workers table in sync with user roles
-- **Event**: After UPDATE on users table
-- **Logic**:
-  - If user role changed TO 'worker', create workers record
-  - If user role changed FROM 'worker', delete workers record
-
-## Entity Relationship Diagram
-[]images()./database-schema/ERD.png
-!
-
-## Key Relationships
-
-- **Users → Workers**: One-to-one for worker users
-- **Users → Measurements**: One-to-many (customers have multiple measurements)
-- **Users → Orders**: One-to-many (customers place multiple orders)
-- **Users → Payments**: One-to-many via orders (admins verify payments)
-- **Measurements → Orders**: One-to-many (a measurement can be used in multiple orders)
-- **Fabrics ↔ Patterns**: Many-to-many through fabric_patterns junction table
-- **Orders → Fabric_patterns**: Many-to-one (one fabric-pattern combination per order)
-
-## Features
-
-### Order Management
-- Create and track customer orders
-- Assign workers to orders
-- Track order status (pending → in progress → finished)
-- Calculate pricing based on size and fabric selection
-
-### Inventory Management
-- Track fabric and pattern combinations
-- Stock management in centimeters
-- Size-based requirement calculation
-
-### Measurement System
-- Store multiple measurement profiles per customer
-- Reference measurements when creating orders
-
-### Payment Tracking
-- Record payment details and proof images
-- Track payment status (pending → verified/rejected)
-- Admin verification workflow
-
-### Worker Management
-- Track worker availability
-- Assign workers to orders
-- Role-based access control
-
-## Installation
-
-1. Ensure MySQL/MariaDB is installed
-2. Run the database schema script:
+4. Eksekusi skrip SQL untuk membuat struktur database dan tabel:
    ```bash
    mysql -u root -p < database-schema/query.sql
    ```
 
-## Database Schema File
+5. Jalankan aplikasi:
+   ```bash
+   go run .
+   ```
 
-Located in `database-schema/query.sql`
+## Alur Sistem
+
+Sistem ini membagi akses pengguna ke dalam tiga peran: **Customer**, **Admin**, dan **Worker**.
+
+### Transisi Status Pembayaran
+1. **Unpaid**: Status default saat pelanggan selesai membuat pesanan.
+2. **Pending**: Status setelah pelanggan memasukkan data/bukti pembayaran.
+3. **Paid**: Status setelah admin memverifikasi dan menyetujui pembayaran.
+
+### Transisi Status Pengerjaan (Worker)
+Setelah admin menugaskan pesanan ke pekerja yang tersedia, pekerja memperbarui progres secara berurutan:
+1. Order diterima
+2. Persiapan bahan
+3. Pemotongan kain
+4. Proses jahit
+5. Finishing (Perubahan status akhir memerlukan status pembayaran "Paid")
+
+## Struktur Database
+
+### Daftar Tabel
+* **users**: Menyimpan data akun pengguna dengan peran `customer`, `admin`, atau `worker`.
+* **workers**: Tabel ekstensi untuk pengguna dengan peran `worker` untuk mencatat status ketersediaan (*availability*).
+* **user_measurements**: Menyimpan profil ukuran badan pelanggan (tinggi, lingkar dada, lingkar pinggang, lingkar pinggul, lebar bahu, dan panjang lengan).
+* **fabrics**: Inventaris bahan kain dasar beserta harga per meter.
+* **patterns**: Daftar motif atau corak pakaian.
+* **fabric_patterns**: Tabel penghubung antara kain dan motif yang mencatat sisa stok dalam satuan sentimeter.
+* **size_requirements**: Tabel acuan ukuran standar (XS-XXL) dan kebutuhan panjang kain (cm).
+* **orders**: Mencatat data transaksi pesanan, kode pesanan, ukuran hasil kalkulasi, penggunaan kain, harga total, status pembayaran, dan status pengerjaan.
+* **payments**: Mencatat transaksi pembayaran, jumlah transfer, bukti bayar, status verifikasi, dan admin yang memverifikasi.
+
+### Trigger Database
+* **trg_after_user_insert**: Otomatis menambahkan data ke tabel `workers` dengan status ketersediaan aktif jika akun baru terdaftar dengan peran 'worker'.
+* **trg_after_user_update**: Otomatis menyinkronkan tabel `workers` jika status peran pengguna diperbarui (menambahkan data jika berubah menjadi 'worker', atau menghapus data jika berubah dari 'worker').
+
+Selengkapnya di :  [database-schema](./database-schema/database-schema.md)
