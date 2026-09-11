@@ -234,3 +234,44 @@ func AdminMenu(
 		}
 	}
 }
+
+func WorkerMenu(workerH *handler.WorkerHandler, user entity.User) {
+	for {
+		fmt.Println()
+		fmt.Println(">>>             WORKER MENU             <<<")
+		fmt.Println()
+
+		prompt := promptui.Select{
+			Label: fmt.Sprintf(
+				"Hi, %s, ada pekerjaan apa?",
+				user.Name,
+			),
+			Items: []string{
+				"Lihat Order Saya",
+				"Update Progress Order",
+				"Log out",
+			},
+			Templates: workerSelectTemplates,
+		}
+
+		index, _, err := prompt.Run()
+		if err != nil {
+			stdio.ClearScreen()
+			return
+		}
+
+		switch index {
+		case 0:
+			ShowMyOrders(workerH, user.ID)
+
+		case 1:
+			UpdateOrderProgressCLI(workerH, user.ID)
+
+		case 2:
+			stdio.ClearScreen()
+			fmt.Println()
+			fmt.Println("[SUCCESS] Berhasil logout.")
+			return
+		}
+	}
+}
