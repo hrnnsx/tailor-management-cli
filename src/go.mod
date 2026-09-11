@@ -11,9 +11,10 @@ require (
 	github.com/stretchr/testify v1.12.1
 )
 
+require go.yaml.in/yaml/v3 v3.0.5 // indirect
+
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/sys v0.0.0-20181122145206-62eef0e2fa9b // indirect
 )
