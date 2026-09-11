@@ -39,7 +39,7 @@ func (h *AuthHandler) Register(name, email, password, phone string) error {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
-			return errors.New("Email sudah terdaftar, silakan gunakan email lain")
+			return errors.New("Email sudah terdaftar, silakan gunakan email lain!")
 		}
 
 		return fmt.Errorf("Gagal mendaftarkan user: %w", err)
