@@ -12,6 +12,22 @@ type User struct {
 	CreatedAt time.Time
 }
 
+type PaymentStatusType string
+
+const (
+	Paid   PaymentStatusType = "paid"
+	Unpaid PaymentStatusType = "unpaid"
+)
+
+type OrderStatusType string
+
+const (
+	Pending        OrderStatusType = "pending"
+	InProgress     OrderStatusType = "in progress"
+	WaitingPayment OrderStatusType = "waiting payment"
+	Finished       OrderStatusType = "finished"
+)
+
 type UserMeasurement struct {
 	ID                 int
 	UserID             int
@@ -44,4 +60,63 @@ type OrderSummary struct {
 	RequiredCM  int
 	PricePerCM  float64
 	TotalPrice  float64
+}
+type CustomerOrder struct {
+	ID             int
+	OrderCode      string
+	DeterminedSize string
+	TotalPrice     float64
+	PaymentStatus  PaymentStatusType
+	Status         OrderStatusType
+	Progress       string
+	CreatedAt      time.Time
+}
+
+type AdminOrder struct {
+	ID               int
+	OrderCode        string
+	CustomerName     string
+	DeterminedSize   string
+	CMUsed           int
+	AssignedWorkerID *int
+	Status           string
+	Progress         string
+	CreatedAt        time.Time
+}
+
+type Payment struct {
+	ID           int
+	OrderID      int
+	OrderCode    string
+	CustomerName string
+	Amount       float64
+	Status       string
+	CreatedAt    time.Time
+}
+
+type AvailableWorker struct {
+	ID   int
+	Name string
+}
+type SalesReport struct {
+	TotalOrders    int
+	TotalRevenue   float64
+	PaidOrders     int
+	UnpaidOrders   int
+	FinishedOrders int
+}
+
+type FabricPattern struct {
+	ID          int
+	FabricID    int
+	FabricName  string
+	PatternID   int
+	PatternName string
+	StockCM     int
+	PricePerCM  float64
+}
+
+type Pattern struct {
+	ID   int
+	Name string
 }

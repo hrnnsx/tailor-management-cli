@@ -1,8 +1,12 @@
 package auth
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"regexp"
+	"strings"
+
 	"tailor-management-cli/config/colors"
 	"tailor-management-cli/entity"
 	"tailor-management-cli/handler"
@@ -13,8 +17,9 @@ import (
 
 func SignIn(authhandler *handler.AuthHandler) (*entity.User, error) {
 	stdio.ClearScreen()
+
 	fmt.Println("                                          ")
-	fmt.Println("                  SIGN IN                 ")
+	fmt.Println(">>>               SIGN IN             <<<")
 	fmt.Println("                                          ")
 
 	// ** Email PROMPT
@@ -25,12 +30,15 @@ func SignIn(authhandler *handler.AuthHandler) (*entity.User, error) {
 
 	var email string
 	for {
-		var emailErr error
-		email, emailErr = emailPrompt.Run()
+		var err error
+		email, err = emailPrompt.Run()
 
-		if emailErr != nil {
-			return nil, emailErr
+		if err != nil {
+			return nil, err
 		}
+
+		email = strings.TrimSpace(email)
+
 		if IsValidEmail(email) {
 			break
 		}
@@ -52,31 +60,65 @@ func SignIn(authhandler *handler.AuthHandler) (*entity.User, error) {
 
 	var password string
 	for {
-		var passwordErr error
-		password, passwordErr = passwordPrompt.Run()
+		var err error
+		password, err = passwordPrompt.Run()
 
-		if passwordErr != nil {
-			return nil, passwordErr
+		if err != nil {
+			return nil, err
 		}
+
 		if IsValidPassword(password) {
 			break
 		}
 
-		fmt.Printf("%s[WARNING] Password minimal 6 karakter%s\n", colors.Red, colors.Reset)
+		fmt.Printf(
+			"%s[WARNING] Password minimal 6 karakter%s\n",
+			colors.Red,
+			colors.Reset,
+		)
 	}
+	fmt.Print("Password: ********\n")
 
+	// ** Sign In
 	user, err := authhandler.SignIn(email, password)
 	if err != nil {
-		return nil, fmt.Errorf("%s[FAILED]:%s %w", colors.Red, colors.Reset, err)
+		fmt.Printf(
+			"%s[FAILED]:%s %v\n",
+			colors.Red,
+			colors.Reset,
+			err,
+		)
+
+		fmt.Print("\nTekan Enter untuk kembali...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+
+		stdio.ClearScreen()
+		return nil, err
 	}
 
-	// Clear terminal
+	fmt.Printf(
+		"%s[SUCCESS]:%s Login berhasil!\n",
+		colors.Green,
+		colors.Reset,
+	)
+
+	fmt.Printf("Selamat datang, %s.\n", user.Name)
+	fmt.Println()
+
+	fmt.Print("Tekan Enter untuk melanjutkan...")
+	bufio.NewReader(os.Stdin).ReadString('\n')
+
+	// Clear terminal setelah user menekan Enter
 	stdio.ClearScreen()
+
 	return user, nil
 }
 
 func IsValidEmail(email string) bool {
-	var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	var emailRegex = regexp.MustCompile(
+		`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`,
+	)
+
 	return emailRegex.MatchString(email)
 }
 
